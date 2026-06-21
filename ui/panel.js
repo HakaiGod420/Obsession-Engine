@@ -124,6 +124,39 @@ export function createSettingsPanel() {
     eventProbInput.style.width = '5rem';
     globalSection.append(makeRow('Event Probability', eventProbInput.id, [eventProbInput], { setting: true }));
 
+    const dividerAI = document.createElement('hr');
+    dividerAI.className = 'oe-ext__divider';
+    globalSection.append(dividerAI);
+
+    const aiDesc = document.createElement('p');
+    aiDesc.className = 'oe-ext__desc';
+    aiDesc.textContent = 'AI Stat Analysis: Uses your Connection Profile to analyze recent chat and apply intelligent stat deltas.';
+    globalSection.append(aiDesc);
+
+    const aiEnabledCb = document.createElement('input');
+    aiEnabledCb.id = 'obsession_engine_ai_analysis_enabled';
+    aiEnabledCb.type = 'checkbox';
+    aiEnabledCb.className = 'oe-ext__checkbox';
+    globalSection.append(makeRow('AI Analysis', aiEnabledCb.id, [aiEnabledCb], { setting: true }));
+
+    const aiIntervalInput = document.createElement('input');
+    aiIntervalInput.id = 'obsession_engine_ai_analysis_interval';
+    aiIntervalInput.type = 'number';
+    aiIntervalInput.min = '3';
+    aiIntervalInput.max = '100';
+    aiIntervalInput.className = 'text_pole oe-ext__number';
+    aiIntervalInput.style.width = '5rem';
+    globalSection.append(makeRow('AI Interval (msgs)', aiIntervalInput.id, [aiIntervalInput], { setting: true }));
+
+    const aiWindowInput = document.createElement('input');
+    aiWindowInput.id = 'obsession_engine_ai_analysis_window';
+    aiWindowInput.type = 'number';
+    aiWindowInput.min = '5';
+    aiWindowInput.max = '50';
+    aiWindowInput.className = 'text_pole oe-ext__number';
+    aiWindowInput.style.width = '5rem';
+    globalSection.append(makeRow('AI Window (msgs)', aiWindowInput.id, [aiWindowInput], { setting: true }));
+
     const divider = document.createElement('hr');
     divider.className = 'oe-ext__divider';
     globalSection.append(divider);

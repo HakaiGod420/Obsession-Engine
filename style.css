@@ -729,6 +729,23 @@
     border-left: 2px solid rgba(233, 30, 99, 0.2);
 }
 
+/* ==================== Dashboard - Force/Darkness Row ==================== */
+
+.oe-dash__force-row {
+    display: flex;
+    gap: 0.75rem;
+    margin: 0.35rem 0 -0.15rem;
+    padding: 0.25rem 0.4rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+.oe-dash__force-label {
+    font-size: 0.68rem;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
 /* ==================== Dashboard - Responsive ==================== */
 
 @media (max-width: 500px) {

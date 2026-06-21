@@ -210,6 +210,25 @@ export function renderCharContent(context, charName, container) {
     const sanityLabel = 'Sanity (' + Math.round(s.sanity) + '/10)';
     statsSection.append(makeGauge(sanityLabel, s.sanity, 10, 'sanity'));
 
+    const im = profile.intensityMultiplier !== undefined ? profile.intensityMultiplier : 1.0;
+    const dc = profile.darknessCeiling !== undefined ? profile.darknessCeiling : 10;
+
+    const forceRow = document.createElement('div');
+    forceRow.className = 'oe-dash__force-row';
+
+    const forceLabel = document.createElement('span');
+    forceLabel.className = 'oe-dash__force-label';
+    forceLabel.textContent = 'Force ' + im.toFixed(1) + 'x';
+
+    const darkLabel = document.createElement('span');
+    darkLabel.className = 'oe-dash__force-label';
+    const darkTier = dc <= 2 ? '\u2601 Mild' : dc <= 4 ? 'Dark' : dc <= 6 ? 'Twisted' : dc <= 8 ? 'Extreme' : '\u2620 Abyssal';
+    darkLabel.textContent = 'Darkness ' + dc + '/10 ' + darkTier;
+    darkLabel.style.color = dc <= 2 ? '#66bb6a' : dc <= 4 ? '#ffa726' : dc <= 6 ? '#ff7043' : dc <= 8 ? '#ef5350' : '#d32f2f';
+
+    forceRow.append(forceLabel, darkLabel);
+    statsSection.append(forceRow);
+
     container.append(statsSection);
 
     const divider = document.createElement('hr');

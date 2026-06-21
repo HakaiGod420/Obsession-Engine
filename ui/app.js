@@ -258,7 +258,17 @@ function openCharEditor(context, charName) {
     tabScenarios.dataset.tab = 'scenarios';
     tabScenarios.textContent = 'Scenarios';
 
-    tabsRow.append(tabStats, tabPersonality, tabGoals, tabScenarios);
+    const tabGrowth = document.createElement('button');
+    tabGrowth.className = 'oe-ext__tab';
+    tabGrowth.dataset.tab = 'growth';
+    tabGrowth.textContent = 'Growth';
+
+    const tabForce = document.createElement('button');
+    tabForce.className = 'oe-ext__tab';
+    tabForce.dataset.tab = 'force';
+    tabForce.textContent = 'Force';
+
+    tabsRow.append(tabStats, tabPersonality, tabGoals, tabScenarios, tabGrowth, tabForce);
     modal.append(tabsRow);
 
     const sectionsWrap = document.createElement('div');
@@ -472,7 +482,50 @@ function openCharEditor(context, charName) {
 
     renderCharScenarios();
 
-    sectionsWrap.append(statsSection, personalitySection, goalsSection, scenariosSection);
+    // ---- Growth Tab ----
+    const growthSection = document.createElement('div');
+    growthSection.className = 'oe-ext__section oe-ext__section--hidden';
+    growthSection.dataset.section = 'growth';
+
+    const growthDesc = document.createElement('p');
+    growthDesc.className = 'oe-ext__desc';
+    growthDesc.textContent = 'Per-stat base growth per message. These are scaled by the intensity multiplier.';
+    growthSection.append(growthDesc);
+
+    const growthFields = {};
+    const gr = profile.growthRates || {};
+    growthFields.love = makeSlider('Love Growth', 'oe_edit_gr_love', gr.love || 0.5, 0, 5, 0.1, growthSection);
+    growthFields.lust = makeSlider('Lust Growth', 'oe_edit_gr_lust', gr.lust || 0.3, 0, 5, 0.1, growthSection);
+    growthFields.hate = makeSlider('Hate Growth', 'oe_edit_gr_hate', gr.hate || 0.1, 0, 5, 0.1, growthSection);
+    growthFields.trust = makeSlider('Trust Growth', 'oe_edit_gr_trust', gr.trust || 0.2, 0, 5, 0.1, growthSection);
+    growthFields.jealousy = makeSlider('Jealousy Growth', 'oe_edit_gr_jealousy', gr.jealousy || 0.1, 0, 5, 0.1, growthSection);
+    growthFields.sanity = makeSlider('Sanity Drain', 'oe_edit_gr_sanity', gr.sanity || -0.05, -3, 5, 0.05, growthSection);
+
+    // ---- Force Tab ----
+    const forceSection = document.createElement('div');
+    forceSection.className = 'oe-ext__section oe-ext__section--hidden';
+    forceSection.dataset.section = 'force';
+
+    const forceDesc = document.createElement('p');
+    forceDesc.className = 'oe-ext__desc';
+    forceDesc.textContent = 'Control how aggressively the engine pushes obsession and how dark things can get.';
+    forceSection.append(forceDesc);
+
+    const mult = profile.intensityMultiplier !== undefined ? profile.intensityMultiplier : 1.0;
+    const dc = profile.darknessCeiling !== undefined ? profile.darknessCeiling : 10;
+
+    const forceFields = {};
+    forceFields.intensity = makeSlider('Intensity Multiplier', 'oe_edit_intensity', mult, 0.1, 3, 0.1, forceSection);
+    forceFields.darkness = makeSlider('Darkness Ceiling', 'oe_edit_darkness', dc, 0, 10, 1, forceSection);
+
+    const darkLabels = ['\u2601 Wholesome', 'Mild', 'Edgy', 'Dark', 'Twisted', 'Depraved', 'Fucked Up', 'Extreme', 'Horror', 'Abyssal', '\u2620 MAX'];
+    const darkHint = document.createElement('small');
+    darkHint.className = 'oe-ext__status';
+    darkHint.style.marginTop = '0.3rem';
+    darkHint.textContent = 'Current: ' + (darkLabels[dc] || dc + '/10');
+    forceSection.append(darkHint);
+
+    sectionsWrap.append(statsSection, personalitySection, goalsSection, scenariosSection, growthSection, forceSection);
     modal.append(sectionsWrap);
 
     modal.querySelectorAll('.oe-ext__tab').forEach(tab => {
@@ -507,6 +560,8 @@ function openCharEditor(context, charName) {
 
         profile.growthRate = parseFloat(growthSlider.input.value);
         profile.tone = parseInt(toneSlider.input.value);
+        profile.intensityMultiplier = parseFloat(forceFields.intensity.input.value);
+        profile.darknessCeiling = parseInt(forceFields.darkness.input.value);
 
         const pe = profile.personality;
         pe.craziness = parseInt(persFields.craziness.input.value);
@@ -515,6 +570,15 @@ function openCharEditor(context, charName) {
         pe.submissiveness = parseInt(persFields.submissiveness.input.value);
         pe.jealousy = parseInt(persFields.jealousy.input.value);
         pe.possessiveness = parseInt(persFields.possessiveness.input.value);
+
+        if (!profile.growthRates) profile.growthRates = {};
+        const gr = profile.growthRates;
+        gr.love = parseFloat(growthFields.love.input.value);
+        gr.lust = parseFloat(growthFields.lust.input.value);
+        gr.hate = parseFloat(growthFields.hate.input.value);
+        gr.trust = parseFloat(growthFields.trust.input.value);
+        gr.jealousy = parseFloat(growthFields.jealousy.input.value);
+        gr.sanity = parseFloat(growthFields.sanity.input.value);
 
         saveDynamicsData(context);
         closeCharEditor();
@@ -607,7 +671,9 @@ function renderPresetList() {
         const infoSpan = document.createElement('span');
         infoSpan.className = 'oe-ext__preset-info';
         const toneLabel = preset.tone >= 3 ? 'Dark' : preset.tone <= -3 ? 'Wholesome' : 'Neutral';
-        infoSpan.textContent = toneLabel + ' \u00B7 Love ' + preset.stats.love;
+        const im = preset.intensityMultiplier || 1.0;
+        const dc = preset.darknessCeiling || 10;
+        infoSpan.textContent = toneLabel + ' \u00B7 Love ' + preset.stats.love + ' \u00B7 ' + im.toFixed(1) + 'x \u00B7 D' + dc;
 
         const applyBtn = document.createElement('button');
         applyBtn.className = 'menu_button oe-ext__btn--small';
@@ -739,6 +805,15 @@ export function refreshUI() {
     const probInput = el('obsession_engine_event_probability');
     if (probInput) probInput.value = settings.eventProbability;
 
+    const aiEnabledCb = el('obsession_engine_ai_analysis_enabled');
+    if (aiEnabledCb) aiEnabledCb.checked = settings.aiAnalysisEnabled;
+
+    const aiIntervalInput = el('obsession_engine_ai_analysis_interval');
+    if (aiIntervalInput) aiIntervalInput.value = settings.aiAnalysisInterval;
+
+    const aiWindowInput = el('obsession_engine_ai_analysis_window');
+    if (aiWindowInput) aiWindowInput.value = settings.aiAnalysisWindow;
+
     renderConnectionProfileOptions(context, settings);
 
     const quickIndicator = el('obsession_engine_quick_indicator');
@@ -809,6 +884,21 @@ function bindEvents(context, settings) {
 
     bind('obsession_engine_event_probability', 'change', function () {
         settings.eventProbability = parseFloat(this.value) || 0.2;
+        saveSettings(context);
+    });
+
+    bind('obsession_engine_ai_analysis_enabled', 'change', function () {
+        settings.aiAnalysisEnabled = this.checked;
+        saveSettings(context);
+    });
+
+    bind('obsession_engine_ai_analysis_interval', 'change', function () {
+        settings.aiAnalysisInterval = parseInt(this.value) || 10;
+        saveSettings(context);
+    });
+
+    bind('obsession_engine_ai_analysis_window', 'change', function () {
+        settings.aiAnalysisWindow = parseInt(this.value) || 15;
         saveSettings(context);
     });
 
