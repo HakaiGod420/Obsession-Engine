@@ -32,6 +32,9 @@ import {
     getEdges,
     getActiveCharName,
     saveDynamicsData,
+    getChatCharacterNames,
+    isChatActive,
+    pruneCharactersToChat,
 } from '../lib/data.js';
 
 import {
@@ -133,16 +136,7 @@ export function discoverCharacters(ctx) {
     const data = getDynamicsData(ctx);
     let found = false;
 
-    if (Array.isArray(ctx.characters)) {
-        for (const char of ctx.characters) {
-            if (!char) continue;
-            const name = char.name || char.data?.name;
-            if (name && !data.characters[name]) {
-                getCharProfile(ctx, name);
-                found = true;
-            }
-        }
-    }
+    pruneCharactersToChat(ctx);
 
     if (ctx.name2 && !data.characters[ctx.name2]) {
         getCharProfile(ctx, ctx.name2);
@@ -171,12 +165,18 @@ function renderCharacterList() {
     const context = getContextSafely();
     if (!context) return;
 
-    discoverCharacters(context);
-
     const list = document.getElementById('obsession_engine_char_list');
     const charsSection = document.querySelector('[data-section="chars"]');
     const empty = charsSection?.querySelector('.oe-ext__empty');
     if (!list) return;
+
+    if (!isChatActive(context)) {
+        list.innerHTML = '';
+        if (empty) empty.style.display = '';
+        return;
+    }
+
+    discoverCharacters(context);
 
     const profiles = getAllCharProfiles(context);
 
@@ -753,34 +753,38 @@ export function toggleDashboard() {
     const isMobile = window.innerWidth <= 500;
     const dash = document.getElementById(DASHBOARD_ID);
 
-    if (isMobile) {
-        if (dash && dash.style.display !== 'none' && state.dashboardOpen) {
+    const isOpen = dash && dash.style.display !== 'none' && state.dashboardOpen;
+
+    if (isOpen) {
+        if (isMobile) {
             closeMobileDashboard();
         } else {
-            openMobileDashboard();
+            dash.style.display = 'none';
+            state.dashboardOpen = false;
+            if (bubbleEl) bubbleEl.style.display = '';
         }
         return;
     }
 
-    if (dash) {
-        if (dash.style.display === 'none') {
-            dash.style.display = '';
-            dash.classList.remove('oe-dash--mobile-fullscreen');
-            state.dashboardOpen = true;
-            const context = getContextSafely();
-            if (context) renderDashboard(context);
-            bindDashboardEvents();
-        } else {
-            dash.style.display = 'none';
-            state.dashboardOpen = false;
-        }
-    } else {
-        createDashboard();
-        const context = getContextSafely();
-        if (context) renderDashboard(context);
-        bindDashboardEvents();
-        state.dashboardOpen = true;
+    const context = getContextSafely();
+    if (!context || !isChatActive(context)) {
+        showToast('No chat open', 'Open a character chat to see dynamics.', 'info');
+        return;
     }
+
+    if (isMobile) {
+        openMobileDashboard();
+        return;
+    }
+
+    if (!dash) createDashboard();
+    const d = document.getElementById(DASHBOARD_ID);
+    if (!d) return;
+    d.style.display = '';
+    d.classList.remove('oe-dash--mobile-fullscreen');
+    state.dashboardOpen = true;
+    renderDashboard(context);
+    bindDashboardEvents();
 }
 
 function bindDashboardEvents() {
@@ -886,14 +890,26 @@ export function refreshUI() {
 
     const quickIndicator = el('obsession_engine_quick_indicator');
     if (quickIndicator) {
-        const count = Object.keys(data.characters || {}).length;
-        quickIndicator.textContent = count > 0 ? '(' + count + ' chars)' : '';
+        if (isChatActive(context)) {
+            const chatNames = new Set(getChatCharacterNames(context));
+            const count = Object.keys(data.characters || {}).filter(n => chatNames.has(n)).length;
+            quickIndicator.textContent = count > 0 ? '(' + count + ' chars)' : '';
+        } else {
+            quickIndicator.textContent = '';
+        }
     }
 
     const dash = el(DASHBOARD_ID);
     if (dash && state.dashboardOpen) {
-        renderDashboard(context);
-        bindDashboardEvents();
+        if (!isChatActive(context)) {
+            dash.style.display = 'none';
+            dash.classList.remove('oe-dash--mobile-fullscreen');
+            state.dashboardOpen = false;
+            if (bubbleEl) bubbleEl.style.display = '';
+        } else {
+            renderDashboard(context);
+            bindDashboardEvents();
+        }
     }
 }
 
@@ -1141,11 +1157,12 @@ export function initUI(context, settings) {
     bindEvents(context, settings);
     bindConnectionProfileEvents(context);
     refreshUI();
-    if (settings.autoShowDashboard) {
+    if (settings.autoShowDashboard && isChatActive(context)) {
         setTimeout(() => {
-            if (!state.dashboardOpen) {
-                toggleDashboard();
-            }
+            if (state.dashboardOpen) return;
+            const ctx = getContextSafely();
+            if (!ctx || !isChatActive(ctx)) return;
+            toggleDashboard();
         }, 500);
     }
     createMobileBubble();
@@ -1281,7 +1298,10 @@ export function createMobileBubble() {
 
 function openMobileDashboard() {
     const context = getContextSafely();
-    if (!context) return;
+    if (!context || !isChatActive(context)) {
+        showToast('No chat open', 'Open a character chat to see dynamics.', 'info');
+        return;
+    }
 
     let dash = document.getElementById(DASHBOARD_ID);
     if (!dash) {

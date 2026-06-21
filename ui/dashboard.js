@@ -1,5 +1,5 @@
 import { DASHBOARD_ID, STAGES, MODULE_NAME, state } from '../lib/constants.js';
-import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings } from '../lib/data.js';
+import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings, isChatActive } from '../lib/data.js';
 
 function colorForStat(statName, value) {
     if (statName === 'love' || statName === 'lust') {
@@ -139,12 +139,22 @@ export function renderDashboard(context) {
     if (!context) context = getContextSafely();
     if (!context) return;
 
-    const data = getDynamicsData(context);
     const tabsRow = document.getElementById('obsession_engine_dash_tabs');
     const contentArea = document.getElementById('obsession_engine_dash_content');
 
     if (!tabsRow || !contentArea) return;
 
+    if (!isChatActive(context)) {
+        tabsRow.innerHTML = '';
+        let emptyHtml = '<div class="oe-dash__empty">No chat open. Open a character chat to see dynamics.</div>';
+        if (state.aiAnalysisInFlight) {
+            emptyHtml += '<div class="oe-dash__loading">\u25CF Analyzing chat stats\u2026</div>';
+        }
+        contentArea.innerHTML = emptyHtml;
+        return;
+    }
+
+    const data = getDynamicsData(context);
     const charNames = Object.keys(data.characters || {});
 
     if (charNames.length === 0) {
