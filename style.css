@@ -823,6 +823,9 @@
     border-color: rgba(233, 30, 99, 0.4);
     font-size: 0.8rem;
     min-height: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .oe-dash__init-btn:hover {

@@ -223,7 +223,9 @@ export function renderCharContent(context, charName, container) {
 
         const initBtn = document.createElement('button');
         initBtn.className = 'menu_button oe-dash__init-btn';
-        initBtn.textContent = '\u2728 Initialize ' + charName;
+        const shortName = charName.length > 20 ? charName.slice(0, 17) + '\u2026' : charName;
+        initBtn.textContent = '\u2728 Initialize ' + shortName;
+        initBtn.title = 'Initialize ' + charName;
         initBtn.disabled = !settings.connectionProfileId || state.initInFlight;
         if (state.initInFlight) initBtn.textContent = '\u23F3 Initializing...';
         initBtn.addEventListener('click', async () => {
