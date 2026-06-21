@@ -1,5 +1,5 @@
 import { DASHBOARD_ID, STAGES, MODULE_NAME, state } from '../lib/constants.js';
-import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove } from '../lib/data.js';
+import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings } from '../lib/data.js';
 
 function colorForStat(statName, value) {
     if (statName === 'love' || statName === 'lust') {
@@ -178,7 +178,8 @@ export function renderDashboard(context) {
         }
     }
 
-    if (state.aiAnalysisInFlight) {
+    const settings = getSettings(context);
+    if (state.aiAnalysisInFlight && settings.connectionProfileId) {
         const loadingEl = document.createElement('div');
         loadingEl.className = 'oe-dash__loading';
         loadingEl.textContent = '\u25CF AI analyzing stats\u2026';
@@ -192,6 +193,54 @@ export function renderCharContent(context, charName, container) {
     const profile = getCharProfile(context, charName);
     if (!profile) {
         container.innerHTML = '<div class="oe-dash__empty">No profile for ' + charName + '</div>';
+        return;
+    }
+
+    if (!profile.initialized) {
+        const uninitDiv = document.createElement('div');
+        uninitDiv.className = 'oe-dash__uninit';
+
+        const warning = document.createElement('div');
+        warning.className = 'oe-dash__uninit-warn';
+        warning.innerHTML = '\u26A0 Not Initialized';
+        uninitDiv.append(warning);
+
+        const desc = document.createElement('div');
+        desc.className = 'oe-dash__empty';
+        desc.style.marginBottom = '0.5rem';
+        desc.textContent = 'This character needs initialization. The AI will read the character card description and determine starting stats, personality, and goals.';
+        uninitDiv.append(desc);
+
+        const settings = getSettings(context);
+
+        if (!settings.connectionProfileId) {
+            const noProfile = document.createElement('div');
+            noProfile.className = 'oe-dash__empty';
+            noProfile.style.color = '#ff7043';
+            noProfile.textContent = 'Select a Connection Profile in the extension settings first.';
+            uninitDiv.append(noProfile);
+        }
+
+        const initBtn = document.createElement('button');
+        initBtn.className = 'menu_button oe-dash__init-btn';
+        initBtn.textContent = '\u2728 Initialize ' + charName;
+        initBtn.disabled = !settings.connectionProfileId || state.initInFlight;
+        if (state.initInFlight) initBtn.textContent = '\u23F3 Initializing...';
+        initBtn.addEventListener('click', async () => {
+            initBtn.disabled = true;
+            initBtn.textContent = '\u23F3 Initializing...';
+            const { initializeCharacter } = await import('../lib/services.js');
+            const ctx = getContextSafely();
+            if (ctx) {
+                await initializeCharacter(ctx, charName);
+                const { refreshUI } = await import('./app.js');
+                refreshUI();
+                renderCharContent(ctx, charName, container);
+            }
+        });
+        uninitDiv.append(initBtn);
+
+        container.append(uninitDiv);
         return;
     }
 

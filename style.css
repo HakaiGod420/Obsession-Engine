@@ -690,6 +690,9 @@
     text-align: center;
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .oe-dash__action-btn:hover {
@@ -765,8 +768,68 @@
 
 @media (max-width: 500px) {
     .oe-dash {
-        width: calc(100vw - 10px);
-        right: 5px;
-        max-height: 50vh;
+        width: calc(100vw - 8px);
+        right: 4px;
+        left: 4px;
+        bottom: 0;
+        top: auto;
+        max-height: 45vh;
+        border-radius: 10px 10px 0 0;
     }
+    .oe-dash__action-btn {
+        min-height: 44px;
+        font-size: 0.75rem !important;
+    }
+    .oe-dash__tab {
+        min-height: 36px;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.75rem;
+    }
+    .oe-ext__modal {
+        width: 96%;
+        max-width: 100%;
+        padding: 0.8rem;
+        border-radius: 10px;
+    }
+    .oe-ext__modal-sections {
+        max-height: 40vh;
+    }
+    .oe-ext__slider-row {
+        flex-wrap: wrap;
+    }
+    .oe-ext__slider-label {
+        min-width: 5rem;
+    }
+}
+
+/* ==================== Dashboard - Uninitialized ==================== */
+
+.oe-dash__uninit {
+    text-align: center;
+    padding: 1rem 0.5rem;
+}
+
+.oe-dash__uninit-warn {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ff9800;
+    margin-bottom: 0.3rem;
+}
+
+.oe-dash__init-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+    background: rgba(233, 30, 99, 0.2);
+    border-color: rgba(233, 30, 99, 0.4);
+    font-size: 0.8rem;
+    min-height: 40px;
+}
+
+.oe-dash__init-btn:hover {
+    background: rgba(233, 30, 99, 0.35);
+}
+
+.oe-dash__init-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }

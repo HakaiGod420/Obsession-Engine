@@ -1118,11 +1118,19 @@ export function bindChatEvents(context) {
     const ms = context.eventTypes.MESSAGE_SENT;
     if (ms) {
         context.eventSource.on(ms, () => {
-            const ctx = getContextSafely();
-            if (!ctx) return;
-            discoverCharacters(ctx);
-            processLatestCharMessage(ctx);
+            discoverCharacters(getContextSafely());
             refreshUI();
+
+            if (state.pendingMsgTimeout) clearTimeout(state.pendingMsgTimeout);
+
+            state.pendingMsgTimeout = setTimeout(() => {
+                state.pendingMsgTimeout = null;
+                const ctx = getContextSafely();
+                if (!ctx) return;
+                discoverCharacters(ctx);
+                processLatestCharMessage(ctx);
+                refreshUI();
+            }, 2000);
         });
     }
 
