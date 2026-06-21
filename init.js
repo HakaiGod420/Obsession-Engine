@@ -1,7 +1,7 @@
 import { state } from './lib/constants.js';
 import { getContextSafely, getSettings, getDynamicsData } from './lib/data.js';
 import { injectDynamicsContext } from './lib/services.js';
-import { initUI, bindChatEvents, ensureSettingsPanel } from './ui/app.js';
+import { initUI, bindChatEvents, ensureSettingsPanel, discoverCharacters } from './ui/app.js';
 
 function tryInitUI() {
     try {
@@ -10,6 +10,7 @@ function tryInitUI() {
         const settings = getSettings(context);
         if (!initUI(context, settings)) return false;
         bindChatEvents(context);
+        discoverCharacters(context);
         const data = getDynamicsData(context);
         if (settings.enabled && settings.autoInject && data.global.enabled) {
             injectDynamicsContext(context);
@@ -35,6 +36,7 @@ export function onActivate() {
     console.info('[ObsessionEngine] onActivate called.');
     const context = getContextSafely();
     if (context) {
+        discoverCharacters(context);
         bindChatEvents(context);
         const settings = getSettings(context);
         const data = getDynamicsData(context);

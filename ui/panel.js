@@ -99,6 +99,12 @@ export function createSettingsPanel() {
     autoInjectCb.className = 'oe-ext__checkbox';
     globalSection.append(makeRow('Auto-Inject Dynamics', autoInjectCb.id, [autoInjectCb], { setting: true }));
 
+    const autoShowDashCb = document.createElement('input');
+    autoShowDashCb.id = 'obsession_engine_auto_show_dashboard';
+    autoShowDashCb.type = 'checkbox';
+    autoShowDashCb.className = 'oe-ext__checkbox';
+    globalSection.append(makeRow('Auto-Show Dashboard', autoShowDashCb.id, [autoShowDashCb], { setting: true }));
+
     const globalEnableCb = document.createElement('input');
     globalEnableCb.id = 'obsession_engine_global_enabled';
     globalEnableCb.type = 'checkbox';

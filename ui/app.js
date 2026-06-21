@@ -130,13 +130,39 @@ function switchTab(tabId) {
 
 export function discoverCharacters(ctx) {
     if (!ctx) return;
-    const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
     const data = getDynamicsData(ctx);
+    let found = false;
+
+    if (Array.isArray(ctx.characters)) {
+        for (const char of ctx.characters) {
+            if (!char) continue;
+            const name = char.name || char.data?.name;
+            if (name && !data.characters[name]) {
+                getCharProfile(ctx, name);
+                found = true;
+            }
+        }
+    }
+
+    if (ctx.name2 && !data.characters[ctx.name2]) {
+        getCharProfile(ctx, ctx.name2);
+        found = true;
+    }
+
+    const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
     for (const msg of chat) {
         if (msg?.name && !msg.is_user) {
             if (!data.characters[msg.name]) {
                 getCharProfile(ctx, msg.name);
+                found = true;
             }
+        }
+    }
+
+    if (found) {
+        const settings = getSettings(ctx);
+        if (settings.enabled && settings.autoInject && data.global.enabled) {
+            injectDynamicsContext(ctx);
         }
     }
 }
@@ -724,19 +750,35 @@ function renderPresetList() {
 // ==================== Dashboard ====================
 
 export function toggleDashboard() {
+    const isMobile = window.innerWidth <= 500;
     const dash = document.getElementById(DASHBOARD_ID);
+
+    if (isMobile) {
+        if (dash && dash.style.display !== 'none' && state.dashboardOpen) {
+            closeMobileDashboard();
+        } else {
+            openMobileDashboard();
+        }
+        return;
+    }
+
     if (dash) {
         if (dash.style.display === 'none') {
             dash.style.display = '';
+            dash.classList.remove('oe-dash--mobile-fullscreen');
             state.dashboardOpen = true;
+            const context = getContextSafely();
+            if (context) renderDashboard(context);
+            bindDashboardEvents();
         } else {
             dash.style.display = 'none';
             state.dashboardOpen = false;
         }
     } else {
-        const newDash = createDashboard();
+        createDashboard();
         const context = getContextSafely();
         if (context) renderDashboard(context);
+        bindDashboardEvents();
         state.dashboardOpen = true;
     }
 }
@@ -749,8 +791,13 @@ function bindDashboardEvents() {
     const closeBtn = dash.querySelector('.oe-dash__close');
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
-            dash.style.display = 'none';
-            state.dashboardOpen = false;
+            if (dash.classList.contains('oe-dash--mobile-fullscreen')) {
+                closeMobileDashboard();
+            } else {
+                dash.style.display = 'none';
+                state.dashboardOpen = false;
+                if (bubbleEl) bubbleEl.style.display = '';
+            }
         });
     }
 
@@ -813,6 +860,9 @@ export function refreshUI() {
 
     const autoInjectCb = el('obsession_engine_auto_inject');
     if (autoInjectCb) autoInjectCb.checked = settings.autoInject;
+
+    const autoShowCb = el('obsession_engine_auto_show_dashboard');
+    if (autoShowCb) autoShowCb.checked = settings.autoShowDashboard;
 
     const globalEnabledCb = el('obsession_engine_global_enabled');
     if (globalEnabledCb) globalEnabledCb.checked = data.global.enabled;
@@ -882,6 +932,11 @@ function bindEvents(context, settings) {
         } else {
             removeDynamicsContext();
         }
+    });
+
+    bind('obsession_engine_auto_show_dashboard', 'change', function () {
+        settings.autoShowDashboard = this.checked;
+        saveSettings(context);
     });
 
     bind('obsession_engine_global_enabled', 'change', function () {
@@ -1086,6 +1141,14 @@ export function initUI(context, settings) {
     bindEvents(context, settings);
     bindConnectionProfileEvents(context);
     refreshUI();
+    if (settings.autoShowDashboard) {
+        setTimeout(() => {
+            if (!state.dashboardOpen) {
+                toggleDashboard();
+            }
+        }, 500);
+    }
+    createMobileBubble();
     return true;
 }
 
@@ -1142,6 +1205,109 @@ export function bindChatEvents(context) {
     }
 
     state.chatEventsBound = true;
+}
+
+// ==================== Mobile Bubble ====================
+
+let bubbleEl = null;
+let bubbleDragged = false;
+
+export function createMobileBubble() {
+    if (bubbleEl) return bubbleEl;
+    if (window.innerWidth > 500) return null;
+
+    bubbleEl = document.createElement('div');
+    bubbleEl.id = 'obsession_engine_bubble';
+    bubbleEl.className = 'oe-bubble';
+    bubbleEl.innerHTML = '<span class="oe-bubble__icon">\u2665</span>';
+    bubbleEl.title = 'Obsession Engine';
+
+    let posX = window.innerWidth - 70;
+    let posY = 120;
+    bubbleEl.style.left = posX + 'px';
+    bubbleEl.style.top = posY + 'px';
+
+    let dragging = false;
+    let startX = 0, startY = 0;
+    let startLeft = 0, startTop = 0;
+    let hasMoved = false;
+
+    function onPointerDown(e) {
+        dragging = true;
+        hasMoved = false;
+        const pt = e.touches ? e.touches[0] : e;
+        startX = pt.clientX;
+        startY = pt.clientY;
+        startLeft = bubbleEl.offsetLeft;
+        startTop = bubbleEl.offsetTop;
+        bubbleEl.classList.add('oe-bubble--dragging');
+        e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+        if (!dragging) return;
+        const pt = e.touches ? e.touches[0] : e;
+        const dx = pt.clientX - startX;
+        const dy = pt.clientY - startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasMoved = true;
+        let nx = startLeft + dx;
+        let ny = startTop + dy;
+        nx = Math.max(4, Math.min(window.innerWidth - bubbleEl.offsetWidth - 4, nx));
+        ny = Math.max(4, Math.min(window.innerHeight - bubbleEl.offsetHeight - 4, ny));
+        bubbleEl.style.left = nx + 'px';
+        bubbleEl.style.top = ny + 'px';
+        e.preventDefault();
+    }
+
+    function onPointerUp() {
+        if (!dragging) return;
+        dragging = false;
+        bubbleEl.classList.remove('oe-bubble--dragging');
+        if (!hasMoved) {
+            openMobileDashboard();
+        }
+    }
+
+    bubbleEl.addEventListener('touchstart', onPointerDown, { passive: false });
+    bubbleEl.addEventListener('touchmove', onPointerMove, { passive: false });
+    bubbleEl.addEventListener('touchend', onPointerUp);
+    bubbleEl.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('mousemove', onPointerMove);
+    document.addEventListener('mouseup', onPointerUp);
+
+    document.body.append(bubbleEl);
+    return bubbleEl;
+}
+
+function openMobileDashboard() {
+    const context = getContextSafely();
+    if (!context) return;
+
+    let dash = document.getElementById(DASHBOARD_ID);
+    if (!dash) {
+        createDashboard();
+        dash = document.getElementById(DASHBOARD_ID);
+    }
+    if (!dash) return;
+
+    dash.classList.add('oe-dash--mobile-fullscreen');
+    dash.style.display = '';
+    state.dashboardOpen = true;
+
+    renderDashboard(context);
+    bindDashboardEvents();
+
+    if (bubbleEl) bubbleEl.style.display = 'none';
+}
+
+export function closeMobileDashboard() {
+    const dash = document.getElementById(DASHBOARD_ID);
+    if (dash) {
+        dash.classList.remove('oe-dash--mobile-fullscreen');
+        dash.style.display = 'none';
+    }
+    state.dashboardOpen = false;
+    if (bubbleEl) bubbleEl.style.display = '';
 }
 
 // ==================== Panel Init ====================

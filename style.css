@@ -836,3 +836,81 @@
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+/* ==================== Mobile Bubble ==================== */
+
+.oe-bubble {
+    position: fixed;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(233, 30, 99, 0.85);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(233, 30, 99, 0.3);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    animation: oe-bubble-pulse 3s ease-in-out infinite;
+}
+
+.oe-bubble:active {
+    transform: scale(0.9);
+}
+
+.oe-bubble--dragging {
+    transform: scale(1.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 30px rgba(233, 30, 99, 0.5);
+    animation: none;
+}
+
+.oe-bubble__icon {
+    font-size: 1.3rem;
+    color: white;
+    line-height: 1;
+    pointer-events: none;
+}
+
+@keyframes oe-bubble-pulse {
+    0%, 100% { box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 15px rgba(233,30,99,0.2); }
+    50% { box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 25px rgba(233,30,99,0.4); }
+}
+
+/* ==================== Mobile Fullscreen Dashboard ==================== */
+
+.oe-dash--mobile-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    z-index: 9999 !important;
+}
+
+.oe-dash--mobile-fullscreen .oe-dash__content {
+    max-height: calc(100vh - 120px);
+    padding-bottom: 1rem;
+}
+
+.oe-dash--mobile-fullscreen .oe-dash__header {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+}
+
+.oe-dash--mobile-fullscreen .oe-dash__close {
+    font-size: 1.5rem;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
