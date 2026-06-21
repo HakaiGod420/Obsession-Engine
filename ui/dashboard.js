@@ -1,4 +1,4 @@
-import { DASHBOARD_ID, STAGES, MODULE_NAME } from '../lib/constants.js';
+import { DASHBOARD_ID, STAGES, MODULE_NAME, state } from '../lib/constants.js';
 import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove } from '../lib/data.js';
 
 function colorForStat(statName, value) {
@@ -146,9 +146,14 @@ export function renderDashboard(context) {
     if (!tabsRow || !contentArea) return;
 
     const charNames = Object.keys(data.characters || {});
+
     if (charNames.length === 0) {
         tabsRow.innerHTML = '';
-        contentArea.innerHTML = '<div class="oe-dash__empty">No characters in chat. Start a conversation to see dynamics.</div>';
+        let emptyHtml = '<div class="oe-dash__empty">No characters in chat. Start a conversation to see dynamics.</div>';
+        if (state.aiAnalysisInFlight) {
+            emptyHtml += '<div class="oe-dash__loading">\u25CF Analyzing chat stats\u2026</div>';
+        }
+        contentArea.innerHTML = emptyHtml;
         return;
     }
 
@@ -171,6 +176,13 @@ export function renderDashboard(context) {
             first = false;
             renderCharContent(context, name, contentArea);
         }
+    }
+
+    if (state.aiAnalysisInFlight) {
+        const loadingEl = document.createElement('div');
+        loadingEl.className = 'oe-dash__loading';
+        loadingEl.textContent = '\u25CF AI analyzing stats\u2026';
+        contentArea.insertBefore(loadingEl, contentArea.firstChild);
     }
 }
 

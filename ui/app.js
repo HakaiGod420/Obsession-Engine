@@ -1073,11 +1073,39 @@ export function initUI(context, settings) {
 export function bindChatEvents(context) {
     if (!context?.eventSource || !context?.eventTypes || state.chatEventsBound) return;
 
+    function discoverCharacters(ctx) {
+        const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
+        const data = getDynamicsData(ctx);
+        for (const msg of chat) {
+            if (msg?.name && !msg.is_user) {
+                if (!data.characters[msg.name]) {
+                    getCharProfile(ctx, msg.name);
+                }
+            }
+        }
+    }
+
+    function processLatestCharMessage(ctx) {
+        const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
+        for (let i = chat.length - 1; i >= 0; i--) {
+            const msg = chat[i];
+            if (msg?.name && !msg.is_user) {
+                processMessage(ctx, {
+                    name: msg.name,
+                    mes: msg.mes || msg.message || msg.content || '',
+                    is_user: false,
+                });
+                break;
+            }
+        }
+    }
+
     const cc = context.eventTypes.CHAT_CHANGED;
     if (cc) {
         context.eventSource.on(cc, () => {
             const ctx = getContextSafely();
             if (!ctx) return;
+            discoverCharacters(ctx);
             const settings = getSettings(ctx);
             const data = getDynamicsData(ctx);
             if (settings.enabled && settings.autoInject && data.global.enabled) {
@@ -1089,18 +1117,11 @@ export function bindChatEvents(context) {
 
     const ms = context.eventTypes.MESSAGE_SENT;
     if (ms) {
-        context.eventSource.on(ms, (data) => {
+        context.eventSource.on(ms, () => {
             const ctx = getContextSafely();
             if (!ctx) return;
-
-            if (data?.message) {
-                processMessage(ctx, {
-                    name: data.message.name || data.message.character,
-                    mes: data.message.mes || data.message.message || data.message.content,
-                    is_user: data.message.is_user,
-                });
-            }
-
+            discoverCharacters(ctx);
+            processLatestCharMessage(ctx);
             refreshUI();
         });
     }
