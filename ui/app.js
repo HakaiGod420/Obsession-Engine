@@ -35,6 +35,7 @@ import {
     getChatCharacterNames,
     isChatActive,
     pruneCharactersToChat,
+    getStageForLove,
 } from '../lib/data.js';
 
 import {
