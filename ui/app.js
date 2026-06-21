@@ -862,6 +862,11 @@ export function refreshUI() {
 
     discoverCharacters(context);
 
+    const charsSection = document.querySelector('[data-section="chars"]');
+    if (charsSection && !charsSection.classList.contains('oe-ext__section--hidden')) {
+        renderCharacterList();
+    }
+
     const settings = getSettings(context);
     const data = getDynamicsData(context);
 

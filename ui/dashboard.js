@@ -1,5 +1,5 @@
 import { DASHBOARD_ID, STAGES, MODULE_NAME, state } from '../lib/constants.js';
-import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings, isChatActive, addThought, saveDynamicsData } from '../lib/data.js';
+import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings, isChatActive, addThought, setThoughts, saveDynamicsData } from '../lib/data.js';
 import { generateHiddenThoughts, showToast } from '../lib/services.js';
 
 function colorForStat(statName, value) {
@@ -536,14 +536,14 @@ export function renderCharContent(context, charName, container) {
                 const text = await generateHiddenThoughts(ctx, charName);
                 if (text) {
                     const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
-                    for (const line of lines) addThought(ctx, charName, line);
+                    if (lines.length > 0) setThoughts(ctx, charName, lines);
                     const p = getCharProfile(ctx, charName);
                     if (p) {
                         p.lastThoughtAt = new Date().toISOString();
                         saveDynamicsData(ctx);
                     }
                     renderCharContent(ctx, charName, container);
-                    showToast('Thoughts Generated', lines.length + ' hidden thought(s) added for ' + charName, 'success');
+                    showToast('Thoughts Generated', lines.length + ' hidden thought(s) for ' + charName, 'success');
                 } else {
                     showToast('Error', 'AI returned no thoughts. Check connection profile.', 'error');
                     genBtn.disabled = false;
