@@ -128,12 +128,28 @@ function switchTab(tabId) {
 
 // ==================== Character List ====================
 
+export function discoverCharacters(ctx) {
+    if (!ctx) return;
+    const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
+    const data = getDynamicsData(ctx);
+    for (const msg of chat) {
+        if (msg?.name && !msg.is_user) {
+            if (!data.characters[msg.name]) {
+                getCharProfile(ctx, msg.name);
+            }
+        }
+    }
+}
+
 function renderCharacterList() {
     const context = getContextSafely();
     if (!context) return;
 
+    discoverCharacters(context);
+
     const list = document.getElementById('obsession_engine_char_list');
-    const empty = document.getElementById(SETTINGS_PANEL_ID)?.querySelector('.oe-ext__empty');
+    const charsSection = document.querySelector('[data-section="chars"]');
+    const empty = charsSection?.querySelector('.oe-ext__empty');
     if (!list) return;
 
     const profiles = getAllCharProfiles(context);
@@ -785,6 +801,8 @@ export function refreshUI() {
     const context = getContextSafely();
     if (!context) return;
 
+    discoverCharacters(context);
+
     const settings = getSettings(context);
     const data = getDynamicsData(context);
 
@@ -1064,6 +1082,7 @@ function bindConnectionProfileEvents(context) {
 
 export function initUI(context, settings) {
     if (!ensureSettingsPanel()) return false;
+    discoverCharacters(context);
     bindEvents(context, settings);
     bindConnectionProfileEvents(context);
     refreshUI();
@@ -1072,18 +1091,6 @@ export function initUI(context, settings) {
 
 export function bindChatEvents(context) {
     if (!context?.eventSource || !context?.eventTypes || state.chatEventsBound) return;
-
-    function discoverCharacters(ctx) {
-        const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
-        const data = getDynamicsData(ctx);
-        for (const msg of chat) {
-            if (msg?.name && !msg.is_user) {
-                if (!data.characters[msg.name]) {
-                    getCharProfile(ctx, msg.name);
-                }
-            }
-        }
-    }
 
     function processLatestCharMessage(ctx) {
         const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
