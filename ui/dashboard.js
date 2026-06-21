@@ -1,5 +1,6 @@
 import { DASHBOARD_ID, STAGES, MODULE_NAME, state } from '../lib/constants.js';
-import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings, isChatActive } from '../lib/data.js';
+import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings, isChatActive, addGoal, updateGoal, deleteGoal, addThought, saveDynamicsData } from '../lib/data.js';
+import { generateHiddenThoughts, showToast } from '../lib/services.js';
 
 function colorForStat(statName, value) {
     if (statName === 'love' || statName === 'lust') {
@@ -38,6 +39,29 @@ function colorForStat(statName, value) {
 function formatStatLabel(key) {
     const map = { love: 'Love', lust: 'Lust/Desire', hate: 'Hate/Rivalry', sanity: 'Sanity', trust: 'Trust', jealousy: 'Jealousy' };
     return map[key] || key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function relativeTime(iso) {
+    if (!iso) return '';
+    const then = new Date(iso).getTime();
+    if (isNaN(then)) return '';
+    const diff = Date.now() - then;
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return 'just now';
+    const min = Math.floor(sec / 60);
+    if (min < 60) return min + 'm ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    const day = Math.floor(hr / 24);
+    if (day < 7) return day + 'd ago';
+    return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function formatDateLabel(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function makeGauge(label, value, max, statKey) {
@@ -304,6 +328,16 @@ export function renderCharContent(context, charName, container) {
 
     container.append(statsSection);
 
+    const metaStrip = document.createElement('div');
+    metaStrip.className = 'oe-dash__meta';
+    const metaParts = [];
+    if (profile.createdAt) metaParts.push('Created: ' + formatDateLabel(profile.createdAt));
+    if (profile.initializedAt) metaParts.push('Init: ' + relativeTime(profile.initializedAt));
+    if (profile.lastMsgAt) metaParts.push('Active: ' + relativeTime(profile.lastMsgAt));
+    if (profile.lastModifiedAt) metaParts.push('Edited: ' + relativeTime(profile.lastModifiedAt));
+    metaStrip.textContent = metaParts.join(' \u00B7 ');
+    container.append(metaStrip);
+
     const divider = document.createElement('hr');
     divider.className = 'oe-dash__divider';
     container.append(divider);
@@ -343,13 +377,13 @@ export function renderCharContent(context, charName, container) {
     if (activeGoals.length === 0 && completedGoals.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'oe-dash__empty';
-        empty.textContent = 'No goals set.';
+        empty.textContent = 'No goals set. Add one below.';
         goalsSection.append(empty);
     }
 
     for (const goal of activeGoals) {
         const goalRow = document.createElement('div');
-        goalRow.className = 'oe-dash__goal';
+        goalRow.className = 'oe-dash__goal-edit-row';
 
         const goalInfo = document.createElement('div');
         goalInfo.className = 'oe-dash__goal-info';
@@ -359,25 +393,75 @@ export function renderCharContent(context, charName, container) {
         goalTitle.className = 'oe-dash__goal-title';
         goalTitle.textContent = goal.title + (goal.hidden ? ' \uD83D\uDC41' : '');
 
-        const goalProgress = document.createElement('span');
-        goalProgress.className = 'oe-dash__goal-pct';
-        goalProgress.textContent = Math.round(goal.progress) + '%';
+        const goalPct = document.createElement('span');
+        goalPct.className = 'oe-dash__goal-pct';
+        goalPct.textContent = Math.round(goal.progress) + '%';
 
-        goalInfo.append(goalTitle, goalProgress);
+        goalInfo.append(goalTitle, goalPct);
 
-        const progressBar = document.createElement('div');
-        progressBar.className = 'oe-dash__goal-bar';
-        const fill = document.createElement('div');
-        fill.className = 'oe-dash__goal-fill';
-        fill.style.width = goal.progress + '%';
-        if (goal.progress > 80) fill.style.backgroundColor = '#e91e63';
-        else if (goal.progress > 50) fill.style.backgroundColor = '#ff7043';
-        else fill.style.backgroundColor = '#42a5f5';
-        progressBar.append(fill);
+        const sliderWrap = document.createElement('div');
+        sliderWrap.className = 'oe-dash__goal-edit-slider-wrap';
 
-        goalRow.append(goalInfo, progressBar);
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.className = 'oe-dash__goal-edit-slider';
+        slider.min = 0;
+        slider.max = 100;
+        slider.value = goal.progress;
+        slider.title = 'Adjust progress';
+        slider.addEventListener('input', () => {
+            goalPct.textContent = slider.value + '%';
+        });
+        slider.addEventListener('change', () => {
+            const ctx = getContextSafely();
+            if (!ctx) return;
+            updateGoal(ctx, charName, goal.id, { progress: parseInt(slider.value) });
+            renderCharContent(ctx, charName, container);
+        });
+
+        sliderWrap.append(slider);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'menu_button oe-dash__goal-edit-del';
+        delBtn.textContent = '\u00D7';
+        delBtn.title = 'Delete goal';
+        delBtn.addEventListener('click', () => {
+            const ctx = getContextSafely();
+            if (!ctx) return;
+            deleteGoal(ctx, charName, goal.id);
+            renderCharContent(ctx, charName, container);
+            showToast('Goal Deleted', '"' + goal.title + '" removed.', 'info');
+        });
+
+        goalRow.append(goalInfo, sliderWrap, delBtn);
         goalsSection.append(goalRow);
     }
+
+    const addRow = document.createElement('div');
+    addRow.className = 'oe-dash__goal-add-row';
+
+    const newTitleInput = document.createElement('input');
+    newTitleInput.type = 'text';
+    newTitleInput.className = 'text_pole oe-dash__goal-add-input';
+    newTitleInput.placeholder = 'New goal...';
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'menu_button oe-dash__goal-add-btn';
+    addBtn.textContent = 'Add';
+    addBtn.addEventListener('click', () => {
+        const title = newTitleInput.value.trim();
+        if (!title) return;
+        const ctx = getContextSafely();
+        if (!ctx) return;
+        addGoal(ctx, charName, { title, description: '', progress: 0, hidden: false });
+        renderCharContent(ctx, charName, container);
+    });
+    newTitleInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addBtn.click();
+    });
+
+    addRow.append(newTitleInput, addBtn);
+    goalsSection.append(addRow);
 
     if (completedGoals.length > 0) {
         const doneTitle = document.createElement('div');
@@ -478,22 +562,84 @@ export function renderCharContent(context, charName, container) {
     const thoughtsSection = document.createElement('div');
     thoughtsSection.className = 'oe-dash__thoughts';
 
+    const thoughtsHeader = document.createElement('div');
+    thoughtsHeader.className = 'oe-dash__thoughts-header';
+
     const thoughtsTitle = document.createElement('h4');
     thoughtsTitle.className = 'oe-dash__section-title';
+    thoughtsTitle.style.margin = '0';
     thoughtsTitle.textContent = 'Hidden Thoughts';
-    thoughtsSection.append(thoughtsTitle);
+    thoughtsHeader.append(thoughtsTitle);
 
-    const recentThoughts = (profile.thoughts || []).slice(0, 3);
+    const dashSettings = getSettings(context);
+    if (dashSettings.connectionProfileId) {
+        const genBtn = document.createElement('button');
+        genBtn.className = 'menu_button oe-dash__gen-btn';
+        genBtn.textContent = '\u2728 Generate';
+        genBtn.title = 'Generate hidden thoughts via AI';
+        genBtn.addEventListener('click', async () => {
+            if (genBtn.disabled) return;
+            genBtn.disabled = true;
+            genBtn.textContent = '\u23F3 Generating...';
+            try {
+                const ctx = getContextSafely() || context;
+                const text = await generateHiddenThoughts(ctx, charName);
+                if (text) {
+                    const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+                    for (const line of lines) addThought(ctx, charName, line);
+                    const p = getCharProfile(ctx, charName);
+                    if (p) {
+                        p.lastThoughtAt = new Date().toISOString();
+                        saveDynamicsData(ctx);
+                    }
+                    renderCharContent(ctx, charName, container);
+                    showToast('Thoughts Generated', lines.length + ' hidden thought(s) added for ' + charName, 'success');
+                } else {
+                    showToast('Error', 'AI returned no thoughts. Check connection profile.', 'error');
+                    genBtn.disabled = false;
+                    genBtn.textContent = '\u2728 Generate';
+                }
+            } catch (err) {
+                console.error('[ObsessionEngine] Dashboard thought generation failed:', err);
+                showToast('Error', 'Failed to generate thoughts: ' + err.message, 'error');
+                genBtn.disabled = false;
+                genBtn.textContent = '\u2728 Generate';
+            }
+        });
+        thoughtsHeader.append(genBtn);
+    }
+
+    thoughtsSection.append(thoughtsHeader);
+
+    if (profile.lastThoughtAt) {
+        const thoughtMeta = document.createElement('div');
+        thoughtMeta.className = 'oe-dash__thought-meta';
+        thoughtMeta.textContent = 'Last generated: ' + relativeTime(profile.lastThoughtAt);
+        thoughtsSection.append(thoughtMeta);
+    }
+
+    const recentThoughts = (profile.thoughts || []).slice(0, 5);
     if (recentThoughts.length === 0) {
         const emptyThoughts = document.createElement('div');
         emptyThoughts.className = 'oe-dash__empty';
-        emptyThoughts.textContent = 'No hidden thoughts generated yet.';
+        emptyThoughts.textContent = dashSettings.connectionProfileId
+            ? 'No hidden thoughts yet. Click Generate or chat to auto-generate.'
+            : 'No hidden thoughts. Select a Connection Profile to enable generation.';
         thoughtsSection.append(emptyThoughts);
     } else {
         for (const thought of recentThoughts) {
             const thoughtRow = document.createElement('div');
             thoughtRow.className = 'oe-dash__thought';
-            thoughtRow.textContent = '\u201C' + thought.text + '\u201D';
+
+            const thoughtText = document.createElement('div');
+            thoughtText.className = 'oe-dash__thought-text';
+            thoughtText.textContent = '\u201C' + thought.text + '\u201D';
+
+            const thoughtTime = document.createElement('div');
+            thoughtTime.className = 'oe-dash__thought-time';
+            thoughtTime.textContent = relativeTime(thought.timestamp);
+
+            thoughtRow.append(thoughtText, thoughtTime);
             thoughtsSection.append(thoughtRow);
         }
     }

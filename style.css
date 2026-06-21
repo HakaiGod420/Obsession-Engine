@@ -674,6 +674,86 @@
     padding: 0.05rem 0;
 }
 
+/* ==================== Dashboard - Goal Editor (inline) ==================== */
+
+.oe-dash__goal-edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin: 0.3rem 0;
+    padding: 0.25rem 0.3rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    border-left: 2px solid rgba(233, 30, 99, 0.3);
+}
+
+.oe-dash__goal-edit-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.oe-dash__goal-edit-slider {
+    flex: 1;
+    height: 0.3rem;
+    min-width: 0;
+    cursor: pointer;
+    accent-color: #e91e63;
+}
+
+.oe-dash__goal-edit-del {
+    font-size: 0.6rem !important;
+    padding: 0.1rem 0.35rem !important;
+    line-height: 1;
+    background: rgba(211, 47, 47, 0.15);
+    border-color: rgba(211, 47, 47, 0.3);
+    color: #ef5350;
+    flex-shrink: 0;
+    align-self: flex-end;
+}
+
+.oe-dash__goal-edit-del:hover {
+    background: rgba(211, 47, 47, 0.3);
+}
+
+.oe-dash__goal-add-row {
+    display: flex;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+}
+
+.oe-dash__goal-add-input {
+    flex: 1;
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.4rem !important;
+    min-width: 0;
+}
+
+.oe-dash__goal-add-btn {
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.5rem !important;
+    flex-shrink: 0;
+    background: rgba(233, 30, 99, 0.15);
+    border-color: rgba(233, 30, 99, 0.3);
+}
+
+.oe-dash__goal-add-btn:hover {
+    background: rgba(233, 30, 99, 0.25);
+}
+
+/* ==================== Dashboard - Metadata Strip ==================== */
+
+.oe-dash__meta {
+    font-size: 0.6rem;
+    opacity: 0.4;
+    margin: 0.2rem 0;
+    padding: 0 0.1rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ==================== Dashboard - Actions ==================== */
 
 .oe-dash__btn-row {
@@ -723,6 +803,37 @@
 
 /* ==================== Dashboard - Thoughts ==================== */
 
+.oe-dash__thoughts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.2rem;
+}
+
+.oe-dash__gen-btn {
+    font-size: 0.6rem !important;
+    padding: 0.2rem 0.4rem !important;
+    background: rgba(233, 30, 99, 0.15);
+    border-color: rgba(233, 30, 99, 0.3);
+    color: #f48fb1;
+    flex-shrink: 0;
+}
+
+.oe-dash__gen-btn:hover:not(:disabled) {
+    background: rgba(233, 30, 99, 0.25);
+}
+
+.oe-dash__gen-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.oe-dash__thought-meta {
+    font-size: 0.58rem;
+    opacity: 0.35;
+    margin-bottom: 0.2rem;
+}
+
 .oe-dash__thought {
     font-size: 0.65rem;
     opacity: 0.5;
@@ -730,6 +841,17 @@
     margin: 0.15rem 0;
     padding: 0.2rem 0.3rem;
     border-left: 2px solid rgba(233, 30, 99, 0.2);
+}
+
+.oe-dash__thought-text {
+    line-height: 1.4;
+}
+
+.oe-dash__thought-time {
+    font-size: 0.55rem;
+    opacity: 0.4;
+    font-style: normal;
+    margin-top: 0.15rem;
 }
 
 /* ==================== Dashboard - Loading ==================== */

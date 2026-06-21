@@ -153,6 +153,8 @@ export function discoverCharacters(ctx) {
         }
     }
 
+    console.debug('[ObsessionEngine] discoverCharacters: chatMetaExists=', !!ctx.chatMetadata, 'charsAfter=', Object.keys(data.characters), 'found=', found);
+
     if (found) {
         const settings = getSettings(ctx);
         if (settings.enabled && settings.autoInject && data.global.enabled) {
@@ -170,7 +172,10 @@ function renderCharacterList() {
     const empty = charsSection?.querySelector('.oe-ext__empty');
     if (!list) return;
 
-    if (!isChatActive(context)) {
+    const chatNames = getChatCharacterNames(context);
+    console.debug('[ObsessionEngine] renderCharacterList: chatNames=', chatNames, 'name2=', context.name2, 'chatId=', context.chatId, 'chatLen=', Array.isArray(context.chat) ? context.chat.length : 'no-chat');
+
+    if (chatNames.length === 0) {
         list.innerHTML = '';
         if (empty) empty.style.display = '';
         return;
@@ -179,6 +184,7 @@ function renderCharacterList() {
     discoverCharacters(context);
 
     const profiles = getAllCharProfiles(context);
+    console.debug('[ObsessionEngine] renderCharacterList: profiles=', profiles.map(p => p.name));
 
     if (profiles.length === 0) {
         list.innerHTML = '';
