@@ -1,0 +1,16 @@
+{
+  "display_name": "Obsession Engine",
+  "loading_order": 100,
+  "requires": [],
+  "optional": [],
+  "dependencies": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "ObsessionEngine",
+  "version": "1.0.0",
+  "homePage": "https://github.com/ObsessionEngine/ObsessionEngine",
+  "auto_update": true,
+  "hooks": {
+    "activate": "onActivate"
+  }
+}
