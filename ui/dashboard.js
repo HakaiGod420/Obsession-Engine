@@ -1,5 +1,5 @@
 import { DASHBOARD_ID, STAGES, MODULE_NAME, state } from '../lib/constants.js';
-import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings, isChatActive, addGoal, updateGoal, deleteGoal, addThought, saveDynamicsData } from '../lib/data.js';
+import { getContextSafely, getCharProfile, getDynamicsData, getStageForLove, getSettings, isChatActive, addThought, saveDynamicsData } from '../lib/data.js';
 import { generateHiddenThoughts, showToast } from '../lib/services.js';
 
 function colorForStat(statName, value) {
@@ -377,13 +377,13 @@ export function renderCharContent(context, charName, container) {
     if (activeGoals.length === 0 && completedGoals.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'oe-dash__empty';
-        empty.textContent = 'No goals set. Add one below.';
+        empty.textContent = 'No goals set. AI may add them during analysis.';
         goalsSection.append(empty);
     }
 
     for (const goal of activeGoals) {
         const goalRow = document.createElement('div');
-        goalRow.className = 'oe-dash__goal-edit-row';
+        goalRow.className = 'oe-dash__goal';
 
         const goalInfo = document.createElement('div');
         goalInfo.className = 'oe-dash__goal-info';
@@ -393,75 +393,25 @@ export function renderCharContent(context, charName, container) {
         goalTitle.className = 'oe-dash__goal-title';
         goalTitle.textContent = goal.title + (goal.hidden ? ' \uD83D\uDC41' : '');
 
-        const goalPct = document.createElement('span');
-        goalPct.className = 'oe-dash__goal-pct';
-        goalPct.textContent = Math.round(goal.progress) + '%';
+        const goalProgress = document.createElement('span');
+        goalProgress.className = 'oe-dash__goal-pct';
+        goalProgress.textContent = Math.round(goal.progress) + '%';
 
-        goalInfo.append(goalTitle, goalPct);
+        goalInfo.append(goalTitle, goalProgress);
 
-        const sliderWrap = document.createElement('div');
-        sliderWrap.className = 'oe-dash__goal-edit-slider-wrap';
+        const progressBar = document.createElement('div');
+        progressBar.className = 'oe-dash__goal-bar';
+        const fill = document.createElement('div');
+        fill.className = 'oe-dash__goal-fill';
+        fill.style.width = goal.progress + '%';
+        if (goal.progress > 80) fill.style.backgroundColor = '#e91e63';
+        else if (goal.progress > 50) fill.style.backgroundColor = '#ff7043';
+        else fill.style.backgroundColor = '#42a5f5';
+        progressBar.append(fill);
 
-        const slider = document.createElement('input');
-        slider.type = 'range';
-        slider.className = 'oe-dash__goal-edit-slider';
-        slider.min = 0;
-        slider.max = 100;
-        slider.value = goal.progress;
-        slider.title = 'Adjust progress';
-        slider.addEventListener('input', () => {
-            goalPct.textContent = slider.value + '%';
-        });
-        slider.addEventListener('change', () => {
-            const ctx = getContextSafely();
-            if (!ctx) return;
-            updateGoal(ctx, charName, goal.id, { progress: parseInt(slider.value) });
-            renderCharContent(ctx, charName, container);
-        });
-
-        sliderWrap.append(slider);
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'menu_button oe-dash__goal-edit-del';
-        delBtn.textContent = '\u00D7';
-        delBtn.title = 'Delete goal';
-        delBtn.addEventListener('click', () => {
-            const ctx = getContextSafely();
-            if (!ctx) return;
-            deleteGoal(ctx, charName, goal.id);
-            renderCharContent(ctx, charName, container);
-            showToast('Goal Deleted', '"' + goal.title + '" removed.', 'info');
-        });
-
-        goalRow.append(goalInfo, sliderWrap, delBtn);
+        goalRow.append(goalInfo, progressBar);
         goalsSection.append(goalRow);
     }
-
-    const addRow = document.createElement('div');
-    addRow.className = 'oe-dash__goal-add-row';
-
-    const newTitleInput = document.createElement('input');
-    newTitleInput.type = 'text';
-    newTitleInput.className = 'text_pole oe-dash__goal-add-input';
-    newTitleInput.placeholder = 'New goal...';
-
-    const addBtn = document.createElement('button');
-    addBtn.className = 'menu_button oe-dash__goal-add-btn';
-    addBtn.textContent = 'Add';
-    addBtn.addEventListener('click', () => {
-        const title = newTitleInput.value.trim();
-        if (!title) return;
-        const ctx = getContextSafely();
-        if (!ctx) return;
-        addGoal(ctx, charName, { title, description: '', progress: 0, hidden: false });
-        renderCharContent(ctx, charName, container);
-    });
-    newTitleInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') addBtn.click();
-    });
-
-    addRow.append(newTitleInput, addBtn);
-    goalsSection.append(addRow);
 
     if (completedGoals.length > 0) {
         const doneTitle = document.createElement('div');

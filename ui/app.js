@@ -342,10 +342,11 @@ function openCharEditor(context, charName) {
 
         const valDisplay = document.createElement('span');
         valDisplay.className = 'oe-ext__slider-value';
-        valDisplay.textContent = value;
+        const fmt = (v) => (step && step < 1) ? Number(v).toFixed(2) : Math.round(Number(v));
+        valDisplay.textContent = fmt(value);
 
         input.addEventListener('input', () => {
-            valDisplay.textContent = input.value;
+            valDisplay.textContent = fmt(input.value);
         });
 
         row.append(lbl, input, valDisplay);
