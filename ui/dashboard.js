@@ -267,12 +267,29 @@ export function renderCharContent(context, charName, container) {
             initBtn.textContent = '\u23F3 Initializing...';
             const { initializeCharacter } = await import('../lib/services.js');
             const ctx = getContextSafely();
-            if (ctx) {
-                await initializeCharacter(ctx, charName);
-                const { refreshUI } = await import('./app.js');
-                refreshUI();
+            if (!ctx) return;
+
+            const result = await initializeCharacter(ctx, charName);
+            if (!result) {
+                // Init failed; button state is reset by re-rendering.
                 renderCharContent(ctx, charName, container);
+                return;
             }
+
+            const actualName = result.actualName || charName;
+
+            const { refreshUI } = await import('./app.js');
+            refreshUI();
+
+            // If the AI renamed the profile, switch the dashboard to the new name.
+            const tabsRow = document.getElementById('obsession_engine_dash_tabs');
+            if (tabsRow) {
+                tabsRow.querySelectorAll('.oe-dash__tab').forEach(t => {
+                    t.classList.toggle('oe-dash__tab--active', t.dataset.char === actualName);
+                });
+            }
+
+            renderCharContent(ctx, actualName, container);
         });
         uninitDiv.append(initBtn);
 

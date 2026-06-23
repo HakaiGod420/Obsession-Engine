@@ -821,7 +821,7 @@
 
 /* ==================== Dashboard - Responsive ==================== */
 
-@media (max-width: 500px) {
+@media (max-width: 768px) {
     .oe-dash {
         width: calc(100vw - 8px);
         right: 4px;
@@ -831,14 +831,33 @@
         max-height: 45vh;
         border-radius: 10px 10px 0 0;
     }
+    .oe-dash__header {
+        min-height: 44px;
+        padding: 0.6rem 0.75rem;
+    }
+    .oe-dash__title {
+        font-size: 0.9rem;
+    }
+    .oe-dash__close,
+    .oe-dash__toggle {
+        min-width: 36px;
+        min-height: 36px;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
     .oe-dash__action-btn {
         min-height: 44px;
         font-size: 0.75rem !important;
     }
     .oe-dash__tab {
-        min-height: 36px;
-        padding: 0.4rem 0.7rem;
-        font-size: 0.75rem;
+        min-height: 40px;
+        padding: 0.45rem 0.85rem;
+        font-size: 0.78rem;
+    }
+    .oe-dash__content {
+        padding: 0.6rem 0.75rem;
     }
     .oe-ext__modal {
         width: 96%;
@@ -854,6 +873,13 @@
     }
     .oe-ext__slider-label {
         min-width: 5rem;
+    }
+    .oe-bubble {
+        width: 58px;
+        height: 58px;
+    }
+    .oe-bubble__icon {
+        font-size: 1.5rem;
     }
 }
 

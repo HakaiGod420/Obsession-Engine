@@ -58,6 +58,12 @@ import {
 import { createSettingsPanel } from './panel.js';
 import { createDashboard, renderDashboard, renderCharContent } from './dashboard.js';
 
+const MOBILE_BREAKPOINT = 768;
+
+function isMobileViewport() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
 // ==================== Status ====================
 
 export function setStatus(text) {
@@ -758,7 +764,7 @@ function renderPresetList() {
 // ==================== Dashboard ====================
 
 export function toggleDashboard() {
-    const isMobile = window.innerWidth <= 500;
+    const isMobile = isMobileViewport();
     const dash = document.getElementById(DASHBOARD_ID);
 
     const isOpen = dash && dash.style.display !== 'none' && state.dashboardOpen;
@@ -1242,9 +1248,25 @@ export function bindChatEvents(context) {
 let bubbleEl = null;
 let bubbleDragged = false;
 
+function updateBubbleVisibility() {
+    if (!bubbleEl) return;
+    if (isMobileViewport()) {
+        bubbleEl.style.display = '';
+        // Keep inside the viewport in case the window was resized from a larger size.
+        const maxX = window.innerWidth - bubbleEl.offsetWidth - 4;
+        const maxY = window.innerHeight - bubbleEl.offsetHeight - 4;
+        bubbleEl.style.left = Math.max(4, Math.min(maxX, parseInt(bubbleEl.style.left || 0, 10))) + 'px';
+        bubbleEl.style.top = Math.max(4, Math.min(maxY, parseInt(bubbleEl.style.top || 0, 10))) + 'px';
+    } else {
+        bubbleEl.style.display = 'none';
+    }
+}
+
 export function createMobileBubble() {
-    if (bubbleEl) return bubbleEl;
-    if (window.innerWidth > 500) return null;
+    if (bubbleEl) {
+        updateBubbleVisibility();
+        return bubbleEl;
+    }
 
     bubbleEl = document.createElement('div');
     bubbleEl.id = 'obsession_engine_bubble';
@@ -1252,7 +1274,7 @@ export function createMobileBubble() {
     bubbleEl.innerHTML = '<span class="oe-bubble__icon">\u2665</span>';
     bubbleEl.title = 'Obsession Engine';
 
-    let posX = window.innerWidth - 70;
+    let posX = Math.max(4, window.innerWidth - 70);
     let posY = 120;
     bubbleEl.style.left = posX + 'px';
     bubbleEl.style.top = posY + 'px';
@@ -1279,7 +1301,7 @@ export function createMobileBubble() {
         const pt = e.touches ? e.touches[0] : e;
         const dx = pt.clientX - startX;
         const dy = pt.clientY - startY;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasMoved = true;
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) hasMoved = true;
         let nx = startLeft + dx;
         let ny = startTop + dy;
         nx = Math.max(4, Math.min(window.innerWidth - bubbleEl.offsetWidth - 4, nx));
@@ -1306,6 +1328,10 @@ export function createMobileBubble() {
     document.addEventListener('mouseup', onPointerUp);
 
     document.body.append(bubbleEl);
+    updateBubbleVisibility();
+
+    window.addEventListener('resize', updateBubbleVisibility);
+
     return bubbleEl;
 }
 
