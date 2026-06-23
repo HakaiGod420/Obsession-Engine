@@ -46,6 +46,7 @@ import {
     removeDynamicsContext,
     generateHiddenThoughts,
     generateMigrationPreset,
+    initializeCharacter,
 } from '../lib/services.js';
 
 import {
@@ -139,15 +140,17 @@ function switchTab(tabId) {
 // ==================== Character List ====================
 
 export function discoverCharacters(ctx) {
-    if (!ctx) return;
+    if (!ctx) return [];
     const data = getDynamicsData(ctx);
     let found = false;
+    const newlyCreated = [];
 
     pruneCharactersToChat(ctx);
 
     if (ctx.name2 && !data.characters[ctx.name2]) {
         getCharProfile(ctx, ctx.name2);
         found = true;
+        newlyCreated.push(ctx.name2);
     }
 
     const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
@@ -156,11 +159,12 @@ export function discoverCharacters(ctx) {
             if (!data.characters[msg.name]) {
                 getCharProfile(ctx, msg.name);
                 found = true;
+                if (!newlyCreated.includes(msg.name)) newlyCreated.push(msg.name);
             }
         }
     }
 
-    console.debug('[ObsessionEngine] discoverCharacters: chatMetaExists=', !!ctx.chatMetadata, 'charsAfter=', Object.keys(data.characters), 'found=', found);
+    console.debug('[ObsessionEngine] discoverCharacters: chatMetaExists=', !!ctx.chatMetadata, 'charsAfter=', Object.keys(data.characters), 'found=', found, 'newlyCreated=', newlyCreated);
 
     if (found) {
         const settings = getSettings(ctx);
@@ -168,6 +172,8 @@ export function discoverCharacters(ctx) {
             injectDynamicsContext(ctx);
         }
     }
+
+    return newlyCreated;
 }
 
 function renderCharacterList() {
@@ -1208,16 +1214,31 @@ export function bindChatEvents(context) {
 
     const cc = context.eventTypes.CHAT_CHANGED;
     if (cc) {
-        context.eventSource.on(cc, () => {
+        context.eventSource.on(cc, async () => {
             const ctx = getContextSafely();
             if (!ctx) return;
-            discoverCharacters(ctx);
+            const newlyCreated = discoverCharacters(ctx) || [];
             const settings = getSettings(ctx);
             const data = getDynamicsData(ctx);
             if (settings.enabled && settings.autoInject && data.global.enabled) {
                 injectDynamicsContext(ctx);
             }
             refreshUI();
+
+            if (settings.connectionProfileId && !state.initInFlight) {
+                for (const charName of newlyCreated) {
+                    const profile = data.characters?.[charName];
+                    if (profile && !profile.initialized) {
+                        try {
+                            await initializeCharacter(ctx, charName);
+                            console.info(`[ObsessionEngine] Auto-initialized new character: ${charName}`);
+                        } catch (err) {
+                            console.warn(`[ObsessionEngine] Auto-init failed for ${charName}:`, err);
+                        }
+                    }
+                }
+                if (newlyCreated.length > 0) refreshUI();
+            }
         });
     }
 
@@ -1229,13 +1250,29 @@ export function bindChatEvents(context) {
 
             if (state.pendingMsgTimeout) clearTimeout(state.pendingMsgTimeout);
 
-            state.pendingMsgTimeout = setTimeout(() => {
+            state.pendingMsgTimeout = setTimeout(async () => {
                 state.pendingMsgTimeout = null;
                 const ctx = getContextSafely();
                 if (!ctx) return;
-                discoverCharacters(ctx);
+                const newlyCreated = discoverCharacters(ctx) || [];
                 processLatestCharMessage(ctx);
                 refreshUI();
+
+                const settings = getSettings(ctx);
+                if (settings.connectionProfileId && !state.initInFlight) {
+                    for (const charName of newlyCreated) {
+                        const profile = getDynamicsData(ctx)?.characters?.[charName];
+                        if (profile && !profile.initialized) {
+                            try {
+                                await initializeCharacter(ctx, charName);
+                                console.info(`[ObsessionEngine] Auto-initialized new character: ${charName}`);
+                            } catch (err) {
+                                console.warn(`[ObsessionEngine] Auto-init failed for ${charName}:`, err);
+                            }
+                        }
+                    }
+                    if (newlyCreated.length > 0) refreshUI();
+                }
             }, 2000);
         });
     }
