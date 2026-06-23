@@ -585,7 +585,7 @@ export function renderCharContent(context, charName, container) {
         thoughtsSection.append(thoughtMeta);
     }
 
-    const recentThoughts = (profile.thoughts || []).slice(0, 5);
+    const recentThoughts = (profile.thoughts || []).slice(0, 3);
     if (recentThoughts.length === 0) {
         const emptyThoughts = document.createElement('div');
         emptyThoughts.className = 'oe-dash__empty';
